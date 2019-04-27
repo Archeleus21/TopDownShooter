@@ -29,6 +29,8 @@ function love.load()
 
   --enemies--
   enemies = {}
+
+  --bullets--
   bullets = {}
 
   --spawn timer--
@@ -46,7 +48,6 @@ function love.update(dt)
     PlayerControls(dt)
   end
 
-
   --enemy movement--
   for i,e in ipairs(enemies) do
     --looks at current x value and adds current angle to move that direction in the x value--
@@ -55,7 +56,7 @@ function love.update(dt)
     --looks at current y value and adds current angle to move that direction in the y value--
     e.y = e.y + math.cos(EnemyPlayerAngle(e)) * e.speed * dt
 
-    if DistanceBetween(e.x, e.y, player.x, player.y) < 50 then
+    if DistanceBetween(e.x, e.y, player.x, player.y) < 40 then
       for i,e in ipairs(enemies) do
         enemies[i] = nil --removes zombie if collides with player--
         gameState = 1
@@ -110,13 +111,12 @@ function love.update(dt)
   if gameState == 2 then
   --counts down in seonds--
     sTimer = sTimer - dt
-  end
-
     --increases spawn rate--
-  if sTimer <= 0 then
-    SpawnEnemy() --spawns--
-    maxTime = maxTime * 0.95  --reduces time between spawns--
-    sTimer = maxTime --resets timer--
+    if sTimer <= 0 then
+      SpawnEnemy() --spawns--
+      maxTime = maxTime * 0.95  --reduces time between spawns--
+      sTimer = maxTime --resets timer--
+    end
   end
 end
 ------------------------------------------------------------------------------
@@ -319,7 +319,7 @@ function love.mousepressed(x, y, button, isTouch)
   if button == 1 and gameState == 2 then
     SpawnBullets()
   end
-
+  --starts game--
   if gameState == 1 then
     gameState = 2
     maxtime = 2
