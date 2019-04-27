@@ -10,6 +10,9 @@ function love.load()
   animSpeed = 0
   animSprite = 1
 
+  --font--
+  myFont = love.graphics.newFont(40)
+
   --store screen width and height--
   screenWidth = love.graphics.getWidth()
   screenHeight = love.graphics.getHeight()
@@ -20,20 +23,29 @@ function love.load()
 
  --player object (table)--
   player = {}
-  player.x = 200
-  player.y = 200
+  player.x = love.graphics.getWidth()/2
+  player.y = love.graphics.getHeight()/2
   player.speed = 180  --60 frames per second, 180 * 1/60(or dt) = 3
 
   --enemies--
   enemies = {}
   bullets = {}
+
+  --spawn timer--
+  gameState = 1
+  maxTime = 2
+  sTimer = maxTime
+  score = 0
 end
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
 function love.update(dt)
 --body--
-  --player movement--
-  PlayerControls(dt);
+  if gameState == 2 then
+    --player movement--
+    PlayerControls(dt)
+  end
+
 
   --enemy movement--
   for i,e in ipairs(enemies) do
@@ -46,6 +58,9 @@ function love.update(dt)
     if DistanceBetween(e.x, e.y, player.x, player.y) < 50 then
       for i,e in ipairs(enemies) do
         enemies[i] = nil --removes zombie if collides with player--
+        gameState = 1
+        player.x = love.graphics.getWidth()/2
+        player.y = love.graphics.getHeight()/2
       end
     end
   end
@@ -72,6 +87,7 @@ function love.update(dt)
       if DistanceBetween(e.x, e.y, b.x, b.y) < 40 then
         e.dead = true
         b.dead = true
+        score = score + 1
       end
     end
   end
@@ -90,12 +106,32 @@ function love.update(dt)
       table.remove(bullets, i)
     end
   end
+
+  if gameState == 2 then
+  --counts down in seonds--
+    sTimer = sTimer - dt
+  end
+
+    --increases spawn rate--
+  if sTimer <= 0 then
+    SpawnEnemy() --spawns--
+    maxTime = maxTime * 0.95  --reduces time between spawns--
+    sTimer = maxTime --resets timer--
+  end
 end
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
 function love.draw()
   -- body...
   DrawBackground();
+
+  --Menu--
+  if gameState == 1 then
+    love.graphics.setFont(myFont)
+    love.graphics.printf("Click anywhere to begin!", 0, 50, love.graphics.getWidth(), "center")
+  end
+
+  love.graphics.printf("Score: " .. score, 0, love.graphics.getHeight() - 100, love.graphics.getWidth(), "center")
   --(file name, posx, posy, orientation in radian, scalex, scaley, origin offsetx, origin offsety, shear factor x, shear factor y)
   love.graphics.draw(sprites.player, player.x, player.y, nil, 2, 2)
 
@@ -117,7 +153,7 @@ function PlayerControls(dt)
   spriteFrontWalkAnim[2] = love.graphics.newImage('sprites/player_walk_front2.png')
   frontWalkAnim = spriteFrontWalkAnim[1]
 
-  if love.keyboard.isDown("s") then
+  if love.keyboard.isDown("s") and player.y < love.graphics.getHeight() - spriteHeight then
     animSpeed = animSpeed + dt
     frontWalkAnim = spriteFrontWalkAnim[animSprite]
     sprites.player = frontWalkAnim
@@ -136,7 +172,7 @@ function PlayerControls(dt)
   spriteBackWalkAnim[2] = love.graphics.newImage('sprites/player_walk_back2.png')
   backWalkAnim = spriteBackWalkAnim[1]
 
-  if love.keyboard.isDown("w") then
+  if love.keyboard.isDown("w") and player.y > 5 then
     animSpeed = animSpeed + dt
     backWalkAnim = spriteBackWalkAnim[animSprite]
     sprites.player = backWalkAnim
@@ -156,7 +192,7 @@ function PlayerControls(dt)
   spriteLeftWalkAnim[2] = love.graphics.newImage('sprites/player_walk_left2.png')
   leftWalkAnim = spriteLeftWalkAnim[1]
 
-  if love.keyboard.isDown("a") then
+  if love.keyboard.isDown("a") and player.x > 5 then
     animSpeed = animSpeed + dt
     leftWalkAnim = spriteLeftWalkAnim[animSprite]
     sprites.player = leftWalkAnim
@@ -177,7 +213,7 @@ function PlayerControls(dt)
   spriteRightWalkAnim[2] = love.graphics.newImage('sprites/player_walk_right2.png')
   rightWalkAnim = spriteRightWalkAnim[1]
 
-  if love.keyboard.isDown("d") then
+  if love.keyboard.isDown("d") and player.x < love.graphics.getWidth() - spriteWidth then
     animSpeed = animSpeed + dt
     rightWalkAnim = spriteRightWalkAnim[animSprite]
     sprites.player = rightWalkAnim
@@ -258,41 +294,56 @@ function SpawnEnemy()
   enemy.speed = 140
   enemy.dead = false
 
+  local side = math.random(1, 4)
+
+  if side == 1 then
+    enemy.x = -30
+    enemy.y = math.random(0, love.graphics.getHeight())
+  elseif side == 2 then
+    enemy.x = math.random(0, love.graphics.getWidth())
+    enemy.y = -30
+  elseif side == 3 then
+    enemy.x = love.graphics.getWidth() + 30
+    enemy.y = math.random(0, love.graphics.getHeight())
+  else
+    enemy.x = math.random(0, love.graphics.getWidth())
+    enemy.y = love.graphics.getHeight() + 30
+  end
   --adds to enemy table to enemies table--
   table.insert(enemies, enemy)
 end
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
---testing enemy spawn--
-function love.keypressed(key, scancode, isrepeat)
-  -- body...
-  if key == "space" then
-    SpawnEnemy()
-  end
-end
-------------------------------------------------------------------------------
-------------------------------------------------------------------------------
 function love.mousepressed(x, y, button, isTouch)
   -- body...
-  if button == 1 then
+  if button == 1 and gameState == 2 then
     SpawnBullets()
+  end
+
+  if gameState == 1 then
+    gameState = 2
+    maxtime = 2
+    sTimer = maxTime
+    score = 0
   end
 end
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
 --reset player to idle--
 function love.keyreleased(key)
-  if key == "s" then
-    sprites.player = love.graphics.newImage('sprites/player_idle_front.png')
-  end
-  if key == "a" then
-    sprites.player = love.graphics.newImage('sprites/player_idle_left.png')
-  end
-  if key == "d" then
-    sprites.player = love.graphics.newImage('sprites/player_idle_right.png')
-  end
-  if key == "w" then
+  if gameState == 1 then
+    if key == "s" then
+      sprites.player = love.graphics.newImage('sprites/player_idle_front.png')
+    end
+    if key == "a" then
+      sprites.player = love.graphics.newImage('sprites/player_idle_left.png')
+    end
+    if key == "d" then
+      sprites.player = love.graphics.newImage('sprites/player_idle_right.png')
+    end
+    if key == "w" then
     sprites.player = love.graphics.newImage('sprites/player_idle_back.png')
+    end
   end
 end
 ------------------------------------------------------------------------------
