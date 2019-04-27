@@ -4,15 +4,15 @@ function love.load()
   sprites = {}
   sprites.player = love.graphics.newImage('sprites/player_idle_front.png')
   sprites.bullet = love.graphics.newImage('sprites/bullet.png')
-  sprites.enemy = love.graphics.newImage('sprites/enemy_idle_front.png')
+  sprites.enemy = love.graphics.newImage('sprites/tank_red.png')
   LoadBackgroundFiles();
 
   animSpeed = 0
   animSprite = 1
 
   --store screen width and height--
-  screenWidth = 800
-  screenHeight = 600
+  screenWidth = love.graphics.getWidth()
+  screenHeight = love.graphics.getHeight()
 
   --store sprite width and height--
   spriteWidth = 16 * 3
@@ -26,12 +26,70 @@ function love.load()
 
   --enemies--
   enemies = {}
+  bullets = {}
 end
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
 function love.update(dt)
 --body--
+  --player movement--
   PlayerControls(dt);
+
+  --enemy movement--
+  for i,e in ipairs(enemies) do
+    --looks at current x value and adds current angle to move that direction in the x value--
+    --needed to subtract because of the sprite orientation--
+    e.x = e.x - math.sin(EnemyPlayerAngle(e)) * e.speed * dt
+    --looks at current y value and adds current angle to move that direction in the y value--
+    e.y = e.y + math.cos(EnemyPlayerAngle(e)) * e.speed * dt
+
+    if DistanceBetween(e.x, e.y, player.x, player.y) < 50 then
+      for i,e in ipairs(enemies) do
+        enemies[i] = nil --removes zombie if collides with player--
+      end
+    end
+  end
+
+--bullet movement--
+  for i,b in ipairs(bullets) do
+    b.x = b.x + math.cos(b.direction) * b.speed * dt
+    b.y = b.y + math.sin(b.direction) * b.speed * dt
+  end
+
+  --bullet deletion--
+  --i is being set to the size of the table "bullets" ( i = #bullets)--
+  --then 1 is the end value and -1 is iteration backwards or decrementing--
+  for i = #bullets, 1,-1 do
+    local b = bullets[i] --position in table--
+    if b.x < 0 or b.y < 0 or b.x > love.graphics.getWidth() or b.y > love.graphics.getHeight() then
+      table.remove(bullets, i) --removes items from table--
+    end
+  end
+
+--enemy and bullet collision
+  for i,e in ipairs(enemies) do
+    for j,b in ipairs(bullets) do
+      if DistanceBetween(e.x, e.y, b.x, b.y) < 40 then
+        e.dead = true
+        b.dead = true
+      end
+    end
+  end
+--enemy deletion after collision
+  for i = #enemies, 1, -1 do
+    local e = enemies[i]
+    if e.dead == true then
+      table.remove(enemies, i)
+    end
+  end
+
+  --bullet deletion after collision
+  for i = #bullets, 1, -1 do
+    local b = bullets[i]
+    if b.dead == true then
+      table.remove(bullets, i)
+    end
+  end
 end
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
@@ -40,11 +98,15 @@ function love.draw()
   DrawBackground();
   --(file name, posx, posy, orientation in radian, scalex, scaley, origin offsetx, origin offsety, shear factor x, shear factor y)
   love.graphics.draw(sprites.player, player.x, player.y, nil, 2, 2)
-  love.graphics.draw(sprites.bullet, 200, 100, r, .5, .5)
 
-  --cycles through enemies table to draw enemies--
-  for i,z in ipairs(enemies) do
-    love.graphics.draw(sprites.enemy, z.x, z.y, r, 2, 2)
+  --cycles through enemies table to draw an enemy--
+  for i,e in ipairs(enemies) do
+    love.graphics.draw(sprites.enemy, e.x, e.y, EnemyPlayerAngle(e), sx, sy, sprites.enemy:getWidth()/2, sprites.enemy:getHeight()/2)
+  end
+
+  --draw bullets--
+  for i,b in ipairs(bullets) do
+    love.graphics.draw(sprites.bullet, b.x, b.y, r, .5, .5, -20, -40)
   end
 end
 ------------------------------------------------------------------------------
@@ -193,9 +255,10 @@ function SpawnEnemy()
   enemy = {}
   enemy.x = math.random(0, love.graphics.getWidth()) --random x pos--
   enemy.y = math.random(0, love.graphics.getHeight())  --random y pos--
-  enemy.speed = 100
+  enemy.speed = 140
+  enemy.dead = false
 
-  --addes to enemies table--
+  --adds to enemy table to enemies table--
   table.insert(enemies, enemy)
 end
 ------------------------------------------------------------------------------
@@ -205,6 +268,14 @@ function love.keypressed(key, scancode, isrepeat)
   -- body...
   if key == "space" then
     SpawnEnemy()
+  end
+end
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+function love.mousepressed(x, y, button, isTouch)
+  -- body...
+  if button == 1 then
+    SpawnBullets()
   end
 end
 ------------------------------------------------------------------------------
@@ -226,3 +297,33 @@ function love.keyreleased(key)
 end
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
+--gets player to mouse angle--
+function PlayerMouseAngle()
+  --3 math.pi / 2 is 270 degrees and -math.pi/2 subtracts 90 degrees--
+  return math.atan2(player.y - love.mouse.getY(), player.x - love.mouse.getX()) + math.pi
+end
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+function EnemyPlayerAngle(enemy)
+  --3 math.pi / 2 is 270 degrees and -math.pi/2 subtracts 90 degrees--
+  return math.atan2(player.y - enemy.y, player.x - enemy.x) - math.pi / 2
+end
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+--gets distance from enemy to player and checks if it is inside/colliding--
+function DistanceBetween(x1, y1, x2, y2)
+  return math.sqrt((y2 - y1)^2 + (x2-x1)^2)
+end
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+function SpawnBullets()
+  bullet = {}
+  bullet.x = player.x
+  bullet.y = player.y
+  bullet.speed = 400
+  bullet.direction = PlayerMouseAngle()
+  bullet.dead = false
+
+  --adds bullet table to bullets table--
+  table.insert(bullets, bullet)
+end
