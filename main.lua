@@ -56,10 +56,12 @@ function love.update(dt)
     --looks at current y value and adds current angle to move that direction in the y value--
     e.y = e.y + math.cos(EnemyPlayerAngle(e)) * e.speed * dt
 
+    --collision detection--
     if DistanceBetween(e.x, e.y, player.x, player.y) < 40 then
       for i,e in ipairs(enemies) do
         enemies[i] = nil --removes zombie if collides with player--
         gameState = 1
+        --resets player back to center of screen--
         player.x = love.graphics.getWidth()/2
         player.y = love.graphics.getHeight()/2
       end
@@ -68,6 +70,7 @@ function love.update(dt)
 
 --bullet movement--
   for i,b in ipairs(bullets) do
+    --calculates the angle in radians of  where the bullet should be going--
     b.x = b.x + math.cos(b.direction) * b.speed * dt
     b.y = b.y + math.sin(b.direction) * b.speed * dt
   end
@@ -82,32 +85,37 @@ function love.update(dt)
     end
   end
 
---enemy and bullet collision
+--enemy and bullet collision--
+--checks each enemy and each bullet for a collision--
   for i,e in ipairs(enemies) do
     for j,b in ipairs(bullets) do
+      --gets the distance  between the bullets and the enemies  to see if they collide--
       if DistanceBetween(e.x, e.y, b.x, b.y) < 40 then
-        e.dead = true
-        b.dead = true
-        score = score + 1
+        e.dead = true  --is enemy dead--
+        b.dead = true  --is bullet dead--
+        score = score + 1  --adds to score
       end
     end
   end
---enemy deletion after collision
+--enemy deletion after collision--
   for i = #enemies, 1, -1 do
     local e = enemies[i]
     if e.dead == true then
+      --removed enemy from list--
       table.remove(enemies, i)
     end
   end
 
-  --bullet deletion after collision
+  --bullet deletion after collision--
   for i = #bullets, 1, -1 do
     local b = bullets[i]
     if b.dead == true then
+      --removed bullet from list--
       table.remove(bullets, i)
     end
   end
 
+  --start timer count down--
   if gameState == 2 then
   --counts down in seonds--
     sTimer = sTimer - dt
@@ -147,90 +155,109 @@ function love.draw()
 end
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
+--controls for player and animations--
 function PlayerControls(dt)
+  --stores player sprites for animations--
+  --stores the front walk sprites--
   spriteFrontWalkAnim = {}
   spriteFrontWalkAnim[1] = love.graphics.newImage('sprites/player_walk_front1.png')
   spriteFrontWalkAnim[2] = love.graphics.newImage('sprites/player_walk_front2.png')
-  frontWalkAnim = spriteFrontWalkAnim[1]
-
+  frontWalkAnim = spriteFrontWalkAnim[1]  --stores first sprite for walking front--
+  --move player down toward bottom of screen and limits movement off screen--
   if love.keyboard.isDown("s") and player.y < love.graphics.getHeight() - spriteHeight then
-    animSpeed = animSpeed + dt
-    frontWalkAnim = spriteFrontWalkAnim[animSprite]
-    sprites.player = frontWalkAnim
+    --animates the player--
+    animSpeed = animSpeed + dt  --speed of sprite transitions--
+    frontWalkAnim = spriteFrontWalkAnim[animSprite]  --updates to animeSprite which is 1--
+    sprites.player = frontWalkAnim  --updates player sprite to frontWalkAnim sprite--
+    --cycles through the animation using delta time--
     if animSpeed > 0.2 then
-      animSprite = animSprite + 1
-      animSpeed = 0
+      animSprite = animSprite + 1  --add 1 to change sprite--
+      animSpeed = 0 --resets timer to 0
     end
+    --reseting sprite to first sprite--
     if animSprite > 2 then
       animSprite = 1
     end
+    --moves the player--
     player.y = player.y + player.speed * dt
   end
 
+  --stores the back walk sprites--
   spriteBackWalkAnim = {}
   spriteBackWalkAnim[1] = love.graphics.newImage('sprites/player_walk_back1.png')
   spriteBackWalkAnim[2] = love.graphics.newImage('sprites/player_walk_back2.png')
-  backWalkAnim = spriteBackWalkAnim[1]
+  backWalkAnim = spriteBackWalkAnim[1]  --sets backwalkanim to first sprite--
 
+  --moves player upward and limites movement--
   if love.keyboard.isDown("w") and player.y > 5 then
+    --animates backwards movement by swapping sprites--
     animSpeed = animSpeed + dt
-    backWalkAnim = spriteBackWalkAnim[animSprite]
-    sprites.player = backWalkAnim
-
+    backWalkAnim = spriteBackWalkAnim[animSprite] --spriteBackWalkAnim is set to 1 --
+    sprites.player = backWalkAnim  --sets player sprite to backaalkanim sprite--
+    --cycles through sprites using delta time--
     if animSpeed > 0.2 then
-      animSprite = animSprite + 1
-      animSpeed = 0
+      animSprite = animSprite + 1  --add 1 to change sprite--
+      animSpeed = 0 --resets timer to 0
     end
+    --reseting sprite to first sprite--
     if animSprite > 2 then
       animSprite = 1
     end
+    --moves player upward--
     player.y = player.y - player.speed * dt
   end
 
+  --stores left walk sprites--
   spriteLeftWalkAnim = {}
   spriteLeftWalkAnim[1] = love.graphics.newImage('sprites/player_walk_left1.png')
   spriteLeftWalkAnim[2] = love.graphics.newImage('sprites/player_walk_left2.png')
-  leftWalkAnim = spriteLeftWalkAnim[1]
-
+  leftWalkAnim = spriteLeftWalkAnim[1]  --sets leftwalk to first sprite--
+  --moves player left and limites movement--
   if love.keyboard.isDown("a") and player.x > 5 then
-    animSpeed = animSpeed + dt
-    leftWalkAnim = spriteLeftWalkAnim[animSprite]
-    sprites.player = leftWalkAnim
-
+    --animate movement by swapping sprites--
+    animSpeed = animSpeed + dt  --speed using delta time--
+    leftWalkAnim = spriteLeftWalkAnim[animSprite]  --set spriteLeftWalkAnim to 1--
+    sprites.player = leftWalkAnim  --sets drawing sprite to current sprite--
+    --cycles through sprites using delta time--
     if animSpeed > 0.2 then
-      animSprite = animSprite + 1
-      animSpeed = 0
+      animSprite = animSprite + 1  --add 1 to change sprite--
+      animSpeed = 0 --resets timer to 0
     end
+    --reseting sprite to first sprite--
     if animSprite > 2 then
       animSprite = 1
     end
-
+    --moves the player left--
     player.x = player.x - player.speed * dt
   end
 
+  --stores right walk sprites--
   spriteRightWalkAnim = {}
   spriteRightWalkAnim[1] = love.graphics.newImage('sprites/player_walk_right1.png')
   spriteRightWalkAnim[2] = love.graphics.newImage('sprites/player_walk_right2.png')
-  rightWalkAnim = spriteRightWalkAnim[1]
+  rightWalkAnim = spriteRightWalkAnim[1]  --sets rightwalk to first sprite--
 
+  --moves player right and limites movement--
   if love.keyboard.isDown("d") and player.x < love.graphics.getWidth() - spriteWidth then
     animSpeed = animSpeed + dt
-    rightWalkAnim = spriteRightWalkAnim[animSprite]
-    sprites.player = rightWalkAnim
-
+    rightWalkAnim = spriteRightWalkAnim[animSprite]  --sets spriteRightWalkAnim to 1--
+    sprites.player = rightWalkAnim  --sets drawn sprite to current sprite--
+     --cycles through sprites using delta time--
     if animSpeed > 0.2 then
-      animSprite = animSprite + 1
-      animSpeed = 0
+      animSprite = animSprite + 1  --add 1 to change sprite--
+      animSpeed = 0 --resets timer to 0
     end
+    --reseting sprite to first sprite--
     if animSprite > 2 then
       animSprite = 1
     end
-
+    --actually moves player right--
     player.x = player.x + player.speed * dt
   end
 end
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
+--loads tile sprites for background--
 function LoadBackgroundFiles()
   sprites.backgroundA = love.graphics.newImage('sprites/ground_top_Left.png')
   sprites.backgroundB = love.graphics.newImage('sprites/ground_top_center.png')
@@ -242,11 +269,14 @@ function LoadBackgroundFiles()
   sprites.backgroundH = love.graphics.newImage('sprites/ground_bottom_center.png')
   sprites.backgroundI = love.graphics.newImage('sprites/ground_bottom_right.png')
 end
-
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+--draws sprites tils for background--
+--this could be done more efficiently, first crack at it, will try to optimize later--
 function DrawBackground()
-  --background--
+  --start background--
   for i=1, 15, 1 do
-    --top--
+    --start top--
     if i == 1 then
       love.graphics.draw(sprites.backgroundA, 0, 0, r, 3, 3)
       for i=1, 15, 1 do
@@ -255,8 +285,8 @@ function DrawBackground()
       end
       love.graphics.draw(sprites.backgroundC, screenWidth - spriteWidth, 0, r, 3, 3)
     end
-    --top--
-    --center--
+    --end top--
+    --start center--
     if i < 12 then
       love.graphics.draw(sprites.backgroundD, 0, spriteHeight * i, r, 3, 3)
       for j=1, 15, 1 do
@@ -264,8 +294,8 @@ function DrawBackground()
       end
       love.graphics.draw(sprites.backgroundF, screenWidth - spriteWidth, spriteHeight * i, r, 3, 3)
     end
-    --center--
-    --bottom--
+    --end center--
+    --start bottom--
     if i == 15 then
       love.graphics.draw(sprites.backgroundG, 0, screenHeight - spriteHeight, r, 3, 3)
       for i=1, 15, 1 do
@@ -274,9 +304,9 @@ function DrawBackground()
       end
       love.graphics.draw(sprites.backgroundI, screenWidth - spriteWidth, screenHeight - spriteHeight, r, 3, 3)
     end
-    --bottom--
+    --end bottom--
   end
-  --background--
+  --end background--
 end
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
@@ -294,8 +324,9 @@ function SpawnEnemy()
   enemy.speed = 140
   enemy.dead = false
 
+  --random number used for spawn location--
   local side = math.random(1, 4)
-
+  --sets actual pos for enemy spawn--
   if side == 1 then
     enemy.x = -30
     enemy.y = math.random(0, love.graphics.getHeight())
@@ -314,12 +345,14 @@ function SpawnEnemy()
 end
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
+--attack button--
 function love.mousepressed(x, y, button, isTouch)
   -- body...
+  --sets left click to shoot button--
   if button == 1 and gameState == 2 then
-    SpawnBullets()
+    SpawnBullets()  --spawns bullets when left mouse is clicked--
   end
-  --starts game--
+  --starts game when left mouse is clicked if game is at title screen--
   if gameState == 1 then
     gameState = 2
     maxtime = 2
@@ -329,7 +362,7 @@ function love.mousepressed(x, y, button, isTouch)
 end
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
---reset player to idle--
+--after direction keys are pressed reset player to idle when keys are released--
 function love.keyreleased(key)
   if gameState == 1 then
     if key == "s" then
@@ -351,12 +384,14 @@ end
 --gets player to mouse angle--
 function PlayerMouseAngle()
   --3 math.pi / 2 is 270 degrees and -math.pi/2 subtracts 90 degrees--
+  --calculates the angle in radians of which way the player should be shooting--
   return math.atan2(player.y - love.mouse.getY(), player.x - love.mouse.getX()) + math.pi
 end
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
 function EnemyPlayerAngle(enemy)
   --3 math.pi / 2 is 270 degrees and -math.pi/2 subtracts 90 degrees--
+  --calculates the angle in radians of which way the enemy should be rotated--
   return math.atan2(player.y - enemy.y, player.x - enemy.x) - math.pi / 2
 end
 ------------------------------------------------------------------------------
@@ -369,11 +404,11 @@ end
 ------------------------------------------------------------------------------
 function SpawnBullets()
   bullet = {}
-  bullet.x = player.x
-  bullet.y = player.y
-  bullet.speed = 400
-  bullet.direction = PlayerMouseAngle()
-  bullet.dead = false
+  bullet.x = player.x  --posX--
+  bullet.y = player.y  --posY--
+  bullet.speed = 400  --speed--
+  bullet.direction = PlayerMouseAngle()  --direction to shoot--
+  bullet.dead = false  --are you dead?--
 
   --adds bullet table to bullets table--
   table.insert(bullets, bullet)
